@@ -32,19 +32,12 @@ UF UR UB UL DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR U L F R B D
  */
 #include "stickerstobin.h"
 static const unsigned char ReidOrder[] = {
-    7,19,  5,28,  1,37,  3,10, // up edges
-   46,25, 50,34, 52,43, 48,16, // down edges
-   23,30, 21,14, 39,32, 41,12, // middle edges
-    8,20,27,  2,29,36,  0,38,9,  6,11,18, // up corners
+    7,19,  5,28,  1,37,  3,10            , // up edges
+   46,25, 50,34, 52,43, 48,16,             // down edges
+   23,30, 21,14, 39,32, 41,12,             // middle edges
+    8,20,27,  2,29,36,  0,38,9,   6,11,18, // up corners
    47,33,26, 45,24,17, 51,15,44, 53,42,35, // down corners
-   4, 13, 22, 31, 40, 49, } ;  // centers
-/*
- *   A solved and oriented cube looks like this.
- */
-static const unsigned char solved[] = {
-  0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1, 2,2,2,2,2,2,2,2,2,
-  3,3,3,3,3,3,3,3,3, 4,4,4,4,4,4,4,4,4, 5,5,5,5,5,5,5,5,5,
-} ;
+   4, 13, 22, 31, 40, 49, } ;              // centers
 /*
  *   To initialize, we want a table that goes from cubie coloring
  *   back to actual cubies.  A -1 value means invalid.  We store
@@ -52,7 +45,9 @@ static const unsigned char solved[] = {
  *   The max value we need to store is 01555 base 6 which is 431
  *   (although this will never be a valid cube).  The lowest two
  *   bits are the orientation; the next five bits are the cubie
- *   index.  The value 255 means illegal.
+ *   index.  The value 255 means illegal.  We take advantage of
+ *   the fact that the solved position has a sticker value equal
+ *   to its index divided by 9.
  */
 static unsigned char cubieLookup[432] ;
 static int cubieExpand[104] ;
@@ -64,8 +59,8 @@ static void initializeCubieTable() {
    for (int i=0; i<sizeof(cubieExpand)/sizeof(cubieExpand[0]); i++)
       cubieExpand[i] = -1 ;
    for (int i=0; i<12; i++) {
-      int c0 = solved[ReidOrder[2*i]] ;
-      int c1 = solved[ReidOrder[2*i+1]] ;
+      int c0 = ReidOrder[2*i]/9 ;
+      int c1 = ReidOrder[2*i+1]/9 ;
       int v = 6*c0+c1;
       cubieLookup[36+v] = 4*i ;
       cubieExpand[4*i] = v ;
@@ -74,9 +69,9 @@ static void initializeCubieTable() {
       cubieExpand[4*i+1] = v ;
    }
    for (int i=12; i<20; i++) {
-      int c0 = solved[ReidOrder[3*i-12]] ;
-      int c1 = solved[ReidOrder[3*i-11]] ;
-      int c2 = solved[ReidOrder[3*i-10]] ;
+      int c0 = ReidOrder[3*i-12]/9 ;
+      int c1 = ReidOrder[3*i-11]/9 ;
+      int c2 = ReidOrder[3*i-10]/9 ;
       int v = 36*c0+6*c1+c2;
       cubieLookup[216+v] = 4*i ;
       cubieExpand[4*i] = v ;
@@ -88,7 +83,7 @@ static void initializeCubieTable() {
       cubieExpand[4*i+2] = v ;
    }
    for (int i=20; i<26; i++) {
-      int v = solved[ReidOrder[i+28]] ;
+      int v = ReidOrder[i+28]/9 ;
       cubieLookup[6+v] = 4*i ;
       cubieExpand[4*i] = v ;
    }
