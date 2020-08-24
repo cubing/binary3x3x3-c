@@ -30,7 +30,7 @@
 UF UR UB UL DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR U L F R B D
  0  1  2  3  4  5  6  7  8  9 10 11  12  13  14  15  16  17  18  19 20  .... 25
  */
-const unsigned char stickercubie[] = {
+static const unsigned char stickercubie[] = {
 //Cor Edg Cor Edg Cen Edg Cor Edg Cor
    14,  2, 13,  3, 20,  1, 15,  0, 12, /* U face */
    14,  3, 15, 11, 21,  9, 18,  7, 17, /* L face */
@@ -55,7 +55,7 @@ struct cubecoords {
 /*
  *   A solved and oriented cube looks like this.
  */
-const unsigned char solved[] = {
+static const unsigned char solved[] = {
   0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1, 2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3, 4,4,4,4,4,4,4,4,4, 5,5,5,5,5,5,5,5,5,
 } ;
@@ -67,13 +67,19 @@ const int ILLEGAL_CUBIE_SEEN = -1002 ;
 const int MISSING_CORNER_CUBIE = -1003 ;
 const int MISSING_EDGE_CUBIE = -1004 ;
 const int MISSING_CENTER_CUBIE = -1005 ;
+const int CORNER_PERMUTATION_OUT_OF_RANGE = -1006 ;
+const int CORNER_ORIENTATION_OUT_OF_RANGE = -1007 ;
+const int PUZZLE_ORIENTATION_NOT_SUPPORTED = -1008 ;
+const int EDGE_PERMUTATION_OUT_OF_RANGE = -1009 ;
+const int CENTER_ORIENTATION_NOT_SUPPORTED = -1010 ;
+const int EDGE_ORIENTATION_OUT_OF_RANGE = -1011 ;
 /*
  *   Here's the encode routine.  Returns 0 if everything looks good.
  *   Returns a negative number for an error code.  We scan in a
  *   specific order so orientations work (specifically, always clockwise
  *   around corners).
  */
-const char faceletOrder[] = { 
+static const char faceletOrder[] = { 
   0, 1, 2, 3, 4, 5, 6, 7, 8, 45, 46, 47, 48, 49, 50, 51, 52, 53, // U/D
   19, 21, 22, 23, 25, 37, 39, 40, 41, 43, // F/B non-corners
   10, 12, 13, 14, 16, 28, 30, 31, 32, 34, // L/R non-corners
@@ -101,28 +107,41 @@ int stickersToCubies(const unsigned char *stickers, int *cubies) {
  *   bits are the orientation; the next five bits are the cubie
  *   index.  The value 255 means illegal.
  */
-unsigned char cubieLookup[432] ;
+static unsigned char cubieLookup[432] ;
+static int cubieExpand[104] ;
 void initializeCubieTable() {
    for (int i=0; i<sizeof(cubieLookup)/sizeof(cubieLookup[0]); i++)
       cubieLookup[i] = 255 ;
+   for (int i=0; i<sizeof(cubieExpand)/sizeof(cubieExpand[0]); i++)
+      cubieExpand[i] = -1 ;
    int cubies[26] ;
    stickersToCubies(solved, cubies) ;
    for (int i=0; i<12; i++) {
       int v = cubies[i] ;
       cubieLookup[v] = 4 * i ;
-      cubieLookup[36 + 6 * (v % 6) + (v / 6 - 6)] = 4 * i + 1 ;
+      cubieExpand[4 * i] = v ;
+      v = 36 + 6 * (v % 6) + (v / 6 - 6) ;
+      cubieLookup[v] = 4 * i + 1 ;
+      cubieExpand[4 * i + 1] = v ;
    }
    for (int i=12; i<20; i++) {
       int v = cubies[i] ;
       cubieLookup[v] = 4 * i ;
+      cubieExpand[4 * i] = v ;
       int c0 = v % 6 ;
       int c1 = (v / 6) % 6 ;
       int c2 = (v / 36) - 6 ;
-      cubieLookup[216 + 36 * c0 + 6 * c2 + c1] = 4 * i + 1 ;
-      cubieLookup[216 + 36 * c1 + 6 * c0 + c2] = 4 * i + 2 ;
+      v = 216 + 36 * c0 + 6 * c2 + c1 ;
+      cubieLookup[v] = 4 * i + 1 ;
+      cubieExpand[4 * i + 1] = v ;
+      v = 216 + 36 * c1 + 6 * c0 + c2 ;
+      cubieLookup[v] = 4 * i + 2 ;
+      cubieExpand[4 * i + 2] = v ;
    }
-   for (int i=20; i<26; i++)
+   for (int i=20; i<26; i++) {
       cubieLookup[cubies[i]] = 4 * i ;
+      cubieExpand[4 * i] = cubies[i] ;
+   }
 }
 /*
  *   Index a permutation.  Return -1 if all values are not seen.
@@ -142,6 +161,16 @@ int encodePerm(const unsigned char *a, int n) {
             r++ ;
    }
    return r ;
+}
+void decodePerm(int lex, unsigned char *a, int n) {
+   a[n-1] = 0 ;
+   for (int i=n-2; i>=0; i--) {
+      a[i] = lex % (n - i) ;
+      lex /= n-i ;
+      for (int j=i+1; j<n; j++)
+         if (a[j] >= a[i])
+            a[j]++ ;
+   }
 }
 /*
  *   From an array of cubie values, calculate the relevant
@@ -200,7 +229,7 @@ unsigned char *tobytes11(const struct cubecoords *cc, unsigned char *p) {
    *p++ = cc->cpLex >> 8 ;
    *p++ = cc->cpLex ;
    *p++ = cc->coMask >> 5 ;
-   *p++ = (cc->coMask << 3) + 6 ; // 6:  no center orientation
+   *p++ = (cc->coMask << 3) + 7 ; // 7:  no center orientation
    *p++ = (cc->epLex >> 21) ;
    *p++ = (cc->epLex >> 13) ;
    *p++ = (cc->epLex >> 5) ;
@@ -209,6 +238,57 @@ unsigned char *tobytes11(const struct cubecoords *cc, unsigned char *p) {
    *p++ = (cc->eoMask << 4) ;
    *p++ = 0 ;
    return r ;
+}
+int frombytes11(const unsigned char *p, struct cubecoords *cc) {
+   cc->cpLex = (p[0] << 8) + p[1] ;
+   if (cc->cpLex >= 40320)
+      return CORNER_PERMUTATION_OUT_OF_RANGE ;
+   cc->coMask = (p[2] << 5) + (p[3] >> 3) ;
+   if (cc->coMask >= 6561)
+      return CORNER_ORIENTATION_OUT_OF_RANGE ;
+   if ((p[3] & 7) != 7)
+      return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
+   cc->epLex = (p[4] << 21) + (p[5] << 13) + (p[6] << 5) + (p[7] >> 3) ;
+   if (cc->epLex >= 479001600)
+      return EDGE_PERMUTATION_OUT_OF_RANGE ;
+   if ((p[7] & 1) != 0)
+      return CENTER_ORIENTATION_NOT_SUPPORTED ;
+   cc->eoMask = (p[8] << 4) + (p[9] >> 4) ;
+   if (cc->eoMask >= 4096)
+      return EDGE_ORIENTATION_OUT_OF_RANGE ;
+   cc->poIdxU = 7 ;
+   cc->poIdxL = 0 ;
+   cc->moSupport = 0 ;
+   cc->moMask = 0 ;
+   return 0 ;
+}
+int coordsToCubies(const struct cubecoords *cc, int *cubies) {
+   unsigned char perm[12] ;
+   int eo = cc->eoMask ;
+   decodePerm(cc->epLex, perm, 12) ;
+   for (int i=0; i<12; i++)
+      cubies[i] = cubieExpand[4*perm[i]+(1&(eo>>(11-i)))] ;
+   decodePerm(cc->cpLex, perm, 8) ;
+   int co = cc->coMask ;
+   for (int i=19; i>=12; i--) {
+      cubies[i] = cubieExpand[4*(12+perm[i-12])+(co%3)] ;
+      co /= 3 ;
+   }
+   for (int i=20; i<26; i++)
+      cubies[i] = cubieExpand[4*i] ;
+   return 0 ;
+}
+int cubiesToStickers(const int *cubiesArg, unsigned char *stickers) {
+   int cubies[26] ;
+   for (int i=0; i<26; i++)
+      cubies[i] = cubiesArg[i] ;
+   for (int fi=53; fi>=0; fi--) {
+      int i = faceletOrder[fi] ;
+      int c = stickercubie[i] ;
+      stickers[i] = cubies[c] % 6 ;
+      cubies[c] /= 6 ;
+   }
+   return 0 ;
 }
 /*
  *   Test things.
@@ -236,6 +316,26 @@ void showenc(unsigned char *s) {
       printf("Got an error: %d\n", err) ;
    showcubecoords(&cc) ;
    showbytes(tobytes11(&cc, bytes), 11) ;
+   struct cubecoords cc2 ;
+   err = frombytes11(bytes, &cc2) ;
+   if (err < 0)
+      printf("Got an error: %d\n", err) ;
+   showcubecoords(&cc2) ;
+   int cubies2[26] ;
+   err = coordsToCubies(&cc2, cubies2) ;
+   if (err < 0)
+      printf("Got an error: %d\n", err) ;
+   unsigned char stickers2[54] ;
+   err = cubiesToStickers(cubies2, stickers2) ;
+   if (err < 0)
+      printf("Got an error: %d\n", err) ;
+   showbytes(stickers2, 54) ;
+   int badcount = 0 ;
+   for (int i=0; i<54; i++)
+      if (s[i] != stickers2[i])
+         badcount++ ;
+   if (badcount)
+      printf("%d stickers did not match.\n", badcount) ;
 }
 int main() {
    initializeCubieTable() ;
