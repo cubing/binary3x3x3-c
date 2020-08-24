@@ -41,16 +41,22 @@ static const unsigned char ReidOrder[] = {
 /*
  *   To initialize, we want a table that goes from cubie coloring
  *   back to actual cubies.  A -1 value means invalid.  We store
- *   the rotations here too, to help us get orientation later.
+ *   the orientations here too, to help us get orientation later.
  *   The max value we need to store is 01555 base 6 which is 431
  *   (although this will never be a valid cube).  The lowest two
  *   bits are the orientation; the next five bits are the cubie
  *   index.  The value 255 means illegal.  We take advantage of
  *   the fact that the solved position has a sticker value equal
  *   to its index divided by 9.
+ *
+ *   If divisions are expensive, the cubieLookup array can be
+ *   expanded to 1024 entries and three three-bit fields can be
+ *   used (so base 8) instead of base 6, with appropriate changes
+ *   below.  This lets us use shifts and masks instead of divisions
+ *   and remainders at a cost of about 600 bytes of space.
  */
-static unsigned char cubieLookup[432] ;
-static int cubieExpand[104] ;
+static unsigned char cubieLookup[432] ; // colors in base 6 to cubie/orientation
+static int cubieExpand[104] ;           // cubie/orientation to colors in base 6
 static void initializeCubieTable() {
    if (cubieExpand[0] != 0) // only do the work once
       return ;
@@ -90,7 +96,9 @@ static void initializeCubieTable() {
 }
 /*
  *   Index a permutation.  Return -1 if all values are not seen.
- *   Zero based.
+ *   Zero based.  This can be made faster (no inner loop) if the
+ *   CPU has a popcount instruction but some microcontrollers
+ *   might not have such.
  */
 static int encodePerm(const unsigned char *a, int n) {
    int bits = 0 ;
@@ -108,7 +116,8 @@ static int encodePerm(const unsigned char *a, int n) {
    return r ;
 }
 /*
- *   Unindex a perm.
+ *   Unindex a perm.  This can be made faster if the CPU has
+ *   64-bit ints but microcontrollers might not have such.
  */
 static void decodePerm(int lex, unsigned char *a, int n) {
    a[n-1] = 0 ;
