@@ -102,17 +102,16 @@ static void initializeCubieTable() {
  */
 static int encodePerm(const unsigned char *a, int n) {
    int bits = 0 ;
-   for (int i=0; i<n; i++)
-      bits |= 1<<a[i] ;
-   if (bits + 1 != 1 << n)
-      return -1 ;
    int r = 0 ;
    for (int i=0; i<n; i++) {
+      bits |= 1<<a[i] ;
       r = r * (n-i) ;
       for (int j=i+1; j<n; j++)
          if (a[i] > a[j])
             r++ ;
    }
+   if (bits + 1 != 1 << n)
+      return -1 ;
    return r ;
 }
 /*
