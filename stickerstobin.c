@@ -30,6 +30,7 @@
 UF UR UB UL DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR U L F R B D
  0  1  2  3  4  5  6  7  8  9 10 11  12  13  14  15  16  17  18  19 20  .... 25
  */
+#include "stickerstobin.h"
 static const unsigned char stickercubie[] = {
 //Cor Edg Cor Edg Cen Edg Cor Edg Cor
    14,  2, 13,  3, 20,  1, 15,  0, 12, /* U face */
@@ -40,39 +41,12 @@ static const unsigned char stickercubie[] = {
    17,  4, 16,  7, 25,  5, 18,  6, 19, /* D face */
 };
 /*
- *   These are the components we generate.
- */
-struct cubecoords {
-   int cpLex ;    /* corner permutation ordinal; 0..40319 */
-   int coMask ;   /* corner orientation base-3; 0..6560 */
-   int poIdxU ;   /* puzzle orientation up index; 0..5 or 7 */
-   int epLex ;    /* edge permutation ordinal; 0..479001599 */
-   int poIdxL ;   /* puzzle orientation left index; 0..3 */
-   int moSupport ;/* center orientation support; 0..1 */
-   int eoMask ;   /* edge orientation; 0..4095 */
-   int moMask ;   /* center orientation; 0..4095 */
-} ;
-/*
  *   A solved and oriented cube looks like this.
  */
 static const unsigned char solved[] = {
   0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1, 2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3, 4,4,4,4,4,4,4,4,4, 5,5,5,5,5,5,5,5,5,
 } ;
-/*
- *   Errors we can return.
- */
-const int STICKER_ELEMENT_OUT_OF_RANGE = -1001 ;
-const int ILLEGAL_CUBIE_SEEN = -1002 ;
-const int MISSING_CORNER_CUBIE = -1003 ;
-const int MISSING_EDGE_CUBIE = -1004 ;
-const int MISSING_CENTER_CUBIE = -1005 ;
-const int CORNER_PERMUTATION_OUT_OF_RANGE = -1006 ;
-const int CORNER_ORIENTATION_OUT_OF_RANGE = -1007 ;
-const int PUZZLE_ORIENTATION_NOT_SUPPORTED = -1008 ;
-const int EDGE_PERMUTATION_OUT_OF_RANGE = -1009 ;
-const int CENTER_ORIENTATION_NOT_SUPPORTED = -1010 ;
-const int EDGE_ORIENTATION_OUT_OF_RANGE = -1011 ;
 /*
  *   To initialize, we want a table that goes from cubie coloring
  *   back to actual cubies.  A -1 value means invalid.  We store
@@ -84,7 +58,6 @@ const int EDGE_ORIENTATION_OUT_OF_RANGE = -1011 ;
  */
 static unsigned char cubieLookup[432] ;
 static int cubieExpand[104] ;
-int stickersToCubies(const unsigned char *stickers, int *cubies) ;
 static void initializeCubieTable() {
    if (cubieExpand[0] != 0) // only do the work once
       return ;
@@ -150,7 +123,7 @@ int stickersToCubies(const unsigned char *stickers, int *cubies) {
  *   Index a permutation.  Return -1 if all values are not seen.
  *   Zero based.
  */
-int encodePerm(const unsigned char *a, int n) {
+static int encodePerm(const unsigned char *a, int n) {
    int bits = 0 ;
    for (int i=0; i<n; i++)
       bits |= 1<<a[i] ;
@@ -165,7 +138,7 @@ int encodePerm(const unsigned char *a, int n) {
    }
    return r ;
 }
-void decodePerm(int lex, unsigned char *a, int n) {
+static void decodePerm(int lex, unsigned char *a, int n) {
    a[n-1] = 0 ;
    for (int i=n-2; i>=0; i--) {
       a[i] = lex % (n - i) ;
@@ -294,63 +267,4 @@ int cubiesToStickers(const int *cubiesArg, unsigned char *stickers) {
       cubies[c] /= 6 ;
    }
    return 0 ;
-}
-/*
- *   Test things.
- */
-#include <stdio.h>
-#include <stdlib.h>
-void showcubecoords(struct cubecoords *cc) {
-   printf("%d %d %d %d %d %d %d\n", cc->cpLex, cc->coMask, cc->poIdxU,
-           cc->epLex, cc->poIdxL, cc->moSupport, cc->eoMask) ;
-}
-void showbytes(unsigned char *b, int n) {
-   for (int i=0; i<n; i++)
-      printf(" %d", b[i]) ;
-   printf("\n") ;
-}
-void showenc(unsigned char *s) {
-   int cubies[26] ;
-   unsigned char bytes[11] ;
-   struct cubecoords cc ;
-   int err = stickersToCubies(s, cubies) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   err = cubiesToComponents(cubies, &cc) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   showcubecoords(&cc) ;
-   showbytes(tobytes11(&cc, bytes), 11) ;
-   struct cubecoords cc2 ;
-   err = frombytes11(bytes, &cc2) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   showcubecoords(&cc2) ;
-   int cubies2[26] ;
-   err = coordsToCubies(&cc2, cubies2) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   unsigned char stickers2[54] ;
-   err = cubiesToStickers(cubies2, stickers2) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   showbytes(stickers2, 54) ;
-   int badcount = 0 ;
-   for (int i=0; i<54; i++)
-      if (s[i] != stickers2[i])
-         badcount++ ;
-   if (badcount)
-      printf("%d stickers did not match.\n", badcount) ;
-}
-int main() {
-   unsigned char s[54] ;
-   while (1) {
-      for (int i=0; i<54; i++) {
-         int v ;
-         if (scanf("%d", &v) != 1)
-            exit(0) ;
-         s[i] = v ;
-      }
-      showenc(s) ;
-   }
 }
