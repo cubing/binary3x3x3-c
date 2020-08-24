@@ -74,31 +74,6 @@ const int EDGE_PERMUTATION_OUT_OF_RANGE = -1009 ;
 const int CENTER_ORIENTATION_NOT_SUPPORTED = -1010 ;
 const int EDGE_ORIENTATION_OUT_OF_RANGE = -1011 ;
 /*
- *   Here's the encode routine.  Returns 0 if everything looks good.
- *   Returns a negative number for an error code.  We scan in a
- *   specific order so orientations work (specifically, always clockwise
- *   around corners).
- */
-static const char faceletOrder[] = { 
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 45, 46, 47, 48, 49, 50, 51, 52, 53, // U/D
-  19, 21, 22, 23, 25, 37, 39, 40, 41, 43, // F/B non-corners
-  10, 12, 13, 14, 16, 28, 30, 31, 32, 34, // L/R non-corners
-  9, 17, 18, 26, 27, 35, 36, 44,          // Right-twist corners
-  11, 15, 20, 24, 29, 33, 38, 42 } ;      // left twist corners
-int stickersToCubies(const unsigned char *stickers, int *cubies) {
-   for (int i=0; i<26; i++)
-      cubies[i] = 1 ;
-   for (int fi=0; fi<54; fi++) {
-      int i = faceletOrder[fi] ;
-      int v = stickers[i] ;
-      if (v > 5)
-         return STICKER_ELEMENT_OUT_OF_RANGE ;
-      int c = stickercubie[i] ;
-      cubies[c] = cubies[c] * 6 + stickers[i] ;
-   }
-   return 0 ;
-}
-/*
  *   To initialize, we want a table that goes from cubie coloring
  *   back to actual cubies.  A -1 value means invalid.  We store
  *   the rotations here too, to help us get orientation later.
@@ -109,7 +84,10 @@ int stickersToCubies(const unsigned char *stickers, int *cubies) {
  */
 static unsigned char cubieLookup[432] ;
 static int cubieExpand[104] ;
-void initializeCubieTable() {
+int stickersToCubies(const unsigned char *stickers, int *cubies) ;
+static void initializeCubieTable() {
+   if (cubieExpand[0] != 0) // only do the work once
+      return ;
    for (int i=0; i<sizeof(cubieLookup)/sizeof(cubieLookup[0]); i++)
       cubieLookup[i] = 255 ;
    for (int i=0; i<sizeof(cubieExpand)/sizeof(cubieExpand[0]); i++)
@@ -142,6 +120,31 @@ void initializeCubieTable() {
       cubieLookup[cubies[i]] = 4 * i ;
       cubieExpand[4 * i] = cubies[i] ;
    }
+}
+/*
+ *   Here's the encode routine.  Returns 0 if everything looks good.
+ *   Returns a negative number for an error code.  We scan in a
+ *   specific order so orientations work (specifically, always clockwise
+ *   around corners).
+ */
+static const char faceletOrder[] = { 
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 45, 46, 47, 48, 49, 50, 51, 52, 53, // U/D
+  19, 21, 22, 23, 25, 37, 39, 40, 41, 43, // F/B non-corners
+  10, 12, 13, 14, 16, 28, 30, 31, 32, 34, // L/R non-corners
+  9, 17, 18, 26, 27, 35, 36, 44,          // Right-twist corners
+  11, 15, 20, 24, 29, 33, 38, 42 } ;      // left twist corners
+int stickersToCubies(const unsigned char *stickers, int *cubies) {
+   for (int i=0; i<26; i++)
+      cubies[i] = 1 ;
+   for (int fi=0; fi<54; fi++) {
+      int i = faceletOrder[fi] ;
+      int v = stickers[i] ;
+      if (v > 5)
+         return STICKER_ELEMENT_OUT_OF_RANGE ;
+      int c = stickercubie[i] ;
+      cubies[c] = cubies[c] * 6 + stickers[i] ;
+   }
+   return 0 ;
 }
 /*
  *   Index a permutation.  Return -1 if all values are not seen.
@@ -177,6 +180,7 @@ void decodePerm(int lex, unsigned char *a, int n) {
  *   permutations and orientations.  Ensure all needed cubies are seen.
  */
 int cubiesToComponents(const int *cubies, struct cubecoords *cc) {
+   initializeCubieTable() ;
    unsigned char edgep[12], cornerp[12], centerp[6] ;
    int edgeo = 0 ;
    int cornero = 0 ;
@@ -263,6 +267,7 @@ int frombytes11(const unsigned char *p, struct cubecoords *cc) {
    return 0 ;
 }
 int coordsToCubies(const struct cubecoords *cc, int *cubies) {
+   initializeCubieTable() ;
    unsigned char perm[12] ;
    int eo = cc->eoMask ;
    decodePerm(cc->epLex, perm, 12) ;
@@ -338,7 +343,6 @@ void showenc(unsigned char *s) {
       printf("%d stickers did not match.\n", badcount) ;
 }
 int main() {
-   initializeCubieTable() ;
    unsigned char s[54] ;
    while (1) {
       for (int i=0; i<54; i++) {
