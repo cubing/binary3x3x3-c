@@ -14,13 +14,9 @@ void showbytes(unsigned char *b, int n) {
    printf("\n") ;
 }
 void showenc(unsigned char *s) {
-   int cubies[26] ;
    unsigned char bytes[11] ;
    struct cubecoords cc ;
-   int err = stickersToCubies(s, cubies) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
-   err = cubiesToComponents(cubies, &cc) ;
+   int err = stickersToComponents(s, &cc) ;
    if (err < 0)
       printf("Got an error: %d\n", err) ;
    showcubecoords(&cc) ;
@@ -30,12 +26,8 @@ void showenc(unsigned char *s) {
    if (err < 0)
       printf("Got an error: %d\n", err) ;
    showcubecoords(&cc2) ;
-   int cubies2[26] ;
-   err = coordsToCubies(&cc2, cubies2) ;
-   if (err < 0)
-      printf("Got an error: %d\n", err) ;
    unsigned char stickers2[54] ;
-   err = cubiesToStickers(cubies2, stickers2) ;
+   err = componentsToStickers(&cc2, stickers2) ;
    if (err < 0)
       printf("Got an error: %d\n", err) ;
    showbytes(stickers2, 54) ;

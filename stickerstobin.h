@@ -14,12 +14,12 @@ struct cubecoords {
 /*
  *   Routines exported.
  */
-extern int stickersToCubies(const unsigned char *stickers, int *cubies) ;
-extern int cubiesToComponents(const int *cubies, struct cubecoords *cc) ;
+extern int stickersToComponents(const unsigned char *stickers,
+                                struct cubecoords *cc) ;
 extern unsigned char *tobytes11(const struct cubecoords *cc, unsigned char *p) ;
 extern int frombytes11(const unsigned char *p, struct cubecoords *cc) ;
-extern int coordsToCubies(const struct cubecoords *cc, int *cubies) ;
-extern int cubiesToStickers(const int *cubiesArg, unsigned char *stickers) ;
+extern int componentsToStickers(const struct cubecoords *cc,
+                                unsigned char *stickers) ;
 /*
  *   Errors we can return.
  */
