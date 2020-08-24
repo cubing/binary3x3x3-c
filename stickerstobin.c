@@ -131,15 +131,9 @@ static void decodePerm(int lex, unsigned char *a, int n) {
  */
 int stickersToComponents(const unsigned char *stickers, struct cubecoords *cc) {
    initializeCubieTable() ;
-   unsigned char edgep[12], cornerp[12], centerp[6] ;
+   unsigned char perm[12] ;
    int edgeo = 0 ;
    int cornero = 0 ;
-   for (int i=0; i<12; i++)
-      edgep[i] = 255 ;
-   for (int i=0; i<8; i++)
-      cornerp[i] = 255 ;
-   for (int i=0; i<6; i++)
-      centerp[i] = 255 ;
    for (int i=0; i<54; i++)
       if (stickers[i] > 5)
          return STICKER_ELEMENT_OUT_OF_RANGE ;
@@ -148,27 +142,27 @@ int stickersToComponents(const unsigned char *stickers, struct cubecoords *cc) {
                                    stickers[ReidOrder[2*i+1]]] ;
       if (cubie == 255)
          return ILLEGAL_CUBIE_SEEN ;
-      edgep[i] = cubie >> 2 ;
+      perm[i] = cubie >> 2 ;
       edgeo = 2 * edgeo + (cubie & 3) ;
    }
+   int edgeperm = encodePerm(perm, 12) ;
+   if (edgeperm < 0)
+      return MISSING_EDGE_CUBIE ;
    for (int i=12; i<20; i++) {
       int cubie = cubieLookup[216+36*stickers[ReidOrder[3*i-12]]+
                                    6*stickers[ReidOrder[3*i-11]]+
                                      stickers[ReidOrder[3*i-10]]] ;
       if (cubie == 255)
          return ILLEGAL_CUBIE_SEEN ;
-      cornerp[i-12] = (cubie >> 2) - 12 ;
+      perm[i-12] = (cubie >> 2) - 12 ;
       cornero = 3 * cornero + (cubie & 3) ;
    }
-   for (int i=20; i<26; i++)
-      centerp[i-20] = (cubieLookup[6+stickers[ReidOrder[i+28]]] >> 2) - 20 ;
-   int cornerperm = encodePerm(cornerp, 8) ;
+   int cornerperm = encodePerm(perm, 8) ;
    if (cornerperm < 0)
       return MISSING_CORNER_CUBIE ;
-   int edgeperm = encodePerm(edgep, 12) ;
-   if (edgeperm < 0)
-      return MISSING_EDGE_CUBIE ;
-   if (encodePerm(centerp, 6) != 0)
+   for (int i=20; i<26; i++)
+      perm[i-20] = (cubieLookup[6+stickers[ReidOrder[i+28]]] >> 2) - 20 ;
+   if (encodePerm(perm, 6) != 0)
       return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
    cc->cpLex = cornerperm ;
    cc->coMask = cornero ;
