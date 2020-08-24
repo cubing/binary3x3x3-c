@@ -200,7 +200,7 @@ unsigned char *tobytes11(const struct cubecoords *cc, unsigned char *p) {
    *p++ = cc->cpLex >> 8 ;
    *p++ = cc->cpLex ;
    *p++ = cc->coMask >> 5 ;
-   *p++ = (cc->coMask << 5) + 6 ; // 6:  no center orientation
+   *p++ = (cc->coMask << 3) + 6 ; // 6:  no center orientation
    *p++ = (cc->epLex >> 21) ;
    *p++ = (cc->epLex >> 13) ;
    *p++ = (cc->epLex >> 5) ;
