@@ -43,6 +43,7 @@ static const unsigned char ReidOrder[] = {
  *   back to actual cubies and forward to cubie coloring.  We separate
  *   edges and corners here.
  */
+#ifdef DYNAMIC_INITIALIZATION
 static unsigned char edgeLookup[36] ;   // 2 colors -> index * 2 + ori
 static unsigned char cornerLookup[36] ; // 2 colors -> index * 4 + ori
 static unsigned char edgeExpand[24] ;   // index * 2 + ori -> 2 3-bit fields
@@ -76,6 +77,24 @@ static void initializeCubieTable() {
       cornerExpand[4*i+2] = (c2<<6)+(c0<<3)+c1 ;
    }
 }
+#else
+/*
+ *   We normally use static initialization.  The above routines
+ *   generate the following tables.
+ */
+#define initializeCubieTable() // no-op the initialization routine
+static const unsigned char edgeLookup[] = { 255, 6, 0, 2, 4, 255, 7, 255,
+   19, 255, 23, 15, 1, 18, 255, 16, 255, 9, 3, 255, 17, 255, 21, 11, 5, 22,
+   255, 20, 255, 13, 255, 14, 8, 10, 12, 255 } ;
+static const unsigned char edgeExpand[] = { 2, 16, 3, 24, 4, 32, 1, 8, 42,
+   21, 43, 29, 44, 37, 41, 13, 19, 26, 17, 10, 35, 28, 33, 12 } ;
+static const unsigned char cornerLookup[] = { 255, 12, 0, 4, 8, 255, 10,
+   255, 13, 255, 25, 22, 14, 21, 255, 1, 255, 18, 2, 255, 17, 255, 5, 30,
+   6, 9, 255, 29, 255, 26, 255, 24, 20, 16, 28, 255 } ;
+static const unsigned short cornerExpand[] = { 19, 152, 194, 0, 28, 224,
+   259, 0, 33, 264, 68, 0, 10, 80, 129, 0, 346, 213, 171, 0, 337, 141, 106,
+   0, 332, 101, 297, 0, 355, 285, 236, 0,} ;
+#endif
 /*
  *   Index a permutation.  Return -1 if all values are not seen.
  *   Zero based.  This can be made faster (no inner loop) if the
