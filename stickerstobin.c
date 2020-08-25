@@ -163,8 +163,8 @@ int stickersToComponents(const unsigned char *stickers, struct cubecoords *cc) {
    int cornerperm = encodePerm(perm, 8) ;
    if (cornerperm < 0)
       return MISSING_CORNER_CUBIE ;
-   for (int i=20; i<26; i++)
-      perm[i-20] = stickers[ReidOrder[i+28]] ;
+   for (int i=0; i<6; i++)
+      perm[i] = stickers[ReidOrder[i+48]] ;
    if (encodePerm(perm, 6) != 0)
       return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
    cc->cpLex = cornerperm ;
