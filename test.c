@@ -47,6 +47,7 @@ int main() {
             exit(0) ;
          s[i] = v ;
       }
+      showbytes(s, 54) ;
       showenc(s) ;
    }
 }

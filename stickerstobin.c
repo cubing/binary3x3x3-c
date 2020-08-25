@@ -40,58 +40,40 @@ static const unsigned char ReidOrder[] = {
    4, 13, 22, 31, 40, 49, } ;              // centers
 /*
  *   To initialize, we want a table that goes from cubie coloring
- *   back to actual cubies.  A -1 value means invalid.  We store
- *   the orientations here too, to help us get orientation later.
- *   The max value we need to store is 01555 base 6 which is 431
- *   (although this will never be a valid cube).  The lowest two
- *   bits are the orientation; the next five bits are the cubie
- *   index.  The value 255 means illegal.  We take advantage of
- *   the fact that the solved position has a sticker value equal
- *   to its index divided by 9.
- *
- *   If divisions are expensive, the cubieLookup array can be
- *   expanded to 1024 entries and three three-bit fields can be
- *   used (so base 8) instead of base 6, with appropriate changes
- *   below.  This lets us use shifts and masks instead of divisions
- *   and remainders at a cost of about 600 bytes of space.
+ *   back to actual cubies and forward to cubie coloring.  We separate
+ *   edges and corners here.
  */
-static unsigned char cubieLookup[432] ; // colors in base 6 to cubie/orientation
-static int cubieExpand[104] ;           // cubie/orientation to colors in base 6
+static unsigned char edgeLookup[36] ;   // 2 colors -> index * 2 + ori
+static unsigned char cornerLookup[36] ; // 2 colors -> index * 4 + ori
+static unsigned char edgeExpand[24] ;   // index * 2 + ori -> 2 3-bit fields
+static unsigned short cornerExpand[32] ; // index * 4 + ori -> 3 3-bit fields
 static void initializeCubieTable() {
-   if (cubieExpand[0] != 0) // only do the work once
+   if (edgeLookup[0] != 0) // only do the work once
       return ;
-   for (int i=0; i<sizeof(cubieLookup)/sizeof(cubieLookup[0]); i++)
-      cubieLookup[i] = 255 ;
-   for (int i=0; i<sizeof(cubieExpand)/sizeof(cubieExpand[0]); i++)
-      cubieExpand[i] = -1 ;
+   for (int i=0; i<36; i++)
+      edgeLookup[i] = cornerLookup[i] = 255 ;
+   for (int i=0; i<24; i++)
+      edgeExpand[i] = 0 ;
+   for (int i=0; i<32; i++)
+      cornerExpand[i] = 0 ;
    for (int i=0; i<12; i++) {
       int c0 = ReidOrder[2*i]/9 ;
       int c1 = ReidOrder[2*i+1]/9 ;
-      int v = 6*c0+c1;
-      cubieLookup[36+v] = 4*i ;
-      cubieExpand[4*i] = v ;
-      v = 6*c1+c0;
-      cubieLookup[36+v] = 4*i+1 ;
-      cubieExpand[4*i+1] = v ;
+      edgeLookup[6*c0+c1] = 2*i ;
+      edgeExpand[2*i] = (c0<<3)+c1 ;
+      edgeLookup[6*c1+c0] = 2*i+1 ;
+      edgeExpand[2*i+1] = (c1<<3)+c0 ;
    }
-   for (int i=12; i<20; i++) {
-      int c0 = ReidOrder[3*i-12]/9 ;
-      int c1 = ReidOrder[3*i-11]/9 ;
-      int c2 = ReidOrder[3*i-10]/9 ;
-      int v = 36*c0+6*c1+c2;
-      cubieLookup[216+v] = 4*i ;
-      cubieExpand[4*i] = v ;
-      v = 36*c2+6*c0+c1 ;
-      cubieLookup[216+v] = 4*i+1 ;
-      cubieExpand[4*i+1] = v ;
-      v = 36*c1+6*c2+c0 ;
-      cubieLookup[216+v] = 4*i+2 ;
-      cubieExpand[4*i+2] = v ;
-   }
-   for (int i=20; i<26; i++) {
-      int v = ReidOrder[i+28]/9 ;
-      cubieLookup[6+v] = 4*i ;
-      cubieExpand[4*i] = v ;
+   for (int i=0; i<8; i++) {
+      int c0 = ReidOrder[24+3*i]/9 ;
+      int c1 = ReidOrder[24+3*i+1]/9 ;
+      int c2 = ReidOrder[24+3*i+2]/9 ;
+      cornerLookup[c0*6+c1] = 4*i ;
+      cornerExpand[4*i] = (c0<<6)+(c1<<3)+c2 ;
+      cornerLookup[c1*6+c2] = 4*i+1 ;
+      cornerExpand[4*i+1] = (c1<<6)+(c2<<3)+c0 ;
+      cornerLookup[c2*6+c0] = 4*i+2 ;
+      cornerExpand[4*i+2] = (c2<<6)+(c0<<3)+c1 ;
    }
 }
 /*
@@ -141,30 +123,30 @@ int stickersToComponents(const unsigned char *stickers, struct cubecoords *cc) {
       if (stickers[i] > 5)
          return STICKER_ELEMENT_OUT_OF_RANGE ;
    for (int i=0; i<12; i++) {
-      int cubie = cubieLookup[36+6*stickers[ReidOrder[2*i]]+
-                                   stickers[ReidOrder[2*i+1]]] ;
+      int cubie = edgeLookup[6*stickers[ReidOrder[2*i]]+
+                               stickers[ReidOrder[2*i+1]]] ;
       if (cubie == 255)
          return ILLEGAL_CUBIE_SEEN ;
-      perm[i] = cubie >> 2 ;
-      edgeo = 2 * edgeo + (cubie & 3) ;
+      perm[i] = cubie >> 1 ;
+      edgeo = 2 * edgeo + (cubie & 1) ;
    }
    int edgeperm = encodePerm(perm, 12) ;
    if (edgeperm < 0)
       return MISSING_EDGE_CUBIE ;
-   for (int i=12; i<20; i++) {
-      int cubie = cubieLookup[216+36*stickers[ReidOrder[3*i-12]]+
-                                   6*stickers[ReidOrder[3*i-11]]+
-                                     stickers[ReidOrder[3*i-10]]] ;
-      if (cubie == 255)
+   for (int i=0; i<8; i++) {
+      int cubie = cornerLookup[6*stickers[ReidOrder[3*i+24]]+
+                                 stickers[ReidOrder[3*i+25]]] ;
+      if (cubie == 255 ||
+          (cornerExpand[cubie] & 7) != stickers[ReidOrder[3*i+26]])
          return ILLEGAL_CUBIE_SEEN ;
-      perm[i-12] = (cubie >> 2) - 12 ;
+      perm[i] = (cubie >> 2) ;
       cornero = 3 * cornero + (cubie & 3) ;
    }
    int cornerperm = encodePerm(perm, 8) ;
    if (cornerperm < 0)
       return MISSING_CORNER_CUBIE ;
    for (int i=20; i<26; i++)
-      perm[i-20] = (cubieLookup[6+stickers[ReidOrder[i+28]]] >> 2) - 20 ;
+      perm[i-20] = stickers[ReidOrder[i+28]] ;
    if (encodePerm(perm, 6) != 0)
       return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
    cc->cpLex = cornerperm ;
@@ -221,20 +203,20 @@ int componentsToStickers(const struct cubecoords *cc, unsigned char *stickers) {
    int eo = cc->eoMask ;
    decodePerm(cc->epLex, perm, 12) ;
    for (int i=0; i<12; i++) {
-      int cubie = cubieExpand[4*perm[i]+(1&(eo>>(11-i)))] ;
-      stickers[ReidOrder[2*i]] = cubie/6 ;
-      stickers[ReidOrder[2*i+1]] = cubie%6 ;
+      int colors = edgeExpand[2*perm[i]+(1&(eo>>(11-i)))] ;
+      stickers[ReidOrder[2*i]] = colors >> 3 ;
+      stickers[ReidOrder[2*i+1]] = colors & 7 ;
    }
    decodePerm(cc->cpLex, perm, 8) ;
    int co = cc->coMask ;
-   for (int i=19; i>=12; i--) {
-      int cubie = cubieExpand[4*(12+perm[i-12])+(co%3)] ;
-      stickers[ReidOrder[3*i-12]] = cubie/36 ;
-      stickers[ReidOrder[3*i-11]] = cubie/6%6 ;
-      stickers[ReidOrder[3*i-10]] = cubie%6 ;
+   for (int i=7; i>=0; i--) {
+      int colors = cornerExpand[4*perm[i]+(co%3)] ;
+      stickers[ReidOrder[3*i+24]] = colors >> 6 ;
+      stickers[ReidOrder[3*i+25]] = (colors >> 3) & 7 ;
+      stickers[ReidOrder[3*i+26]] = colors & 7 ;
       co /= 3 ;
    }
-   for (int i=20; i<26; i++)
-      stickers[ReidOrder[i+28]] = cubieExpand[4*i] ;
+   for (int i=0; i<6; i++)
+      stickers[ReidOrder[i+48]] = i ;
    return 0 ;
 }
