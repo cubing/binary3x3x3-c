@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include "stickerstobin.h"
 void showcubecoords(struct cubecoords *cc) {
-   printf("%d %d %d %d %d %d %d\n", cc->cpLex, cc->coMask, cc->poIdxU,
-           cc->epLex, cc->poIdxL, cc->moSupport, cc->eoMask) ;
+   printf("%d %d %d %d %d %d %d %d\n", cc->epLex, cc->eoMask, cc->cpLex,
+           cc->coMask, cc->poIdxU, cc->poIdxL, cc->moSupport, cc->moMask) ;
 }
 void showbytes(unsigned char *b, int n) {
    for (int i=0; i<n; i++)
-      printf(" %d", b[i]) ;
+      printf(" %x", b[i]) ;
    printf("\n") ;
 }
 void showenc(unsigned char *s) {
