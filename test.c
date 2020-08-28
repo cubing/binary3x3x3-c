@@ -3,7 +3,10 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include "cubecoords.h"
 #include "stickerstobin.h"
+#include "heykubetobin.h"
+#include "reidtobin.h"
 void showcubecoords(struct cubecoords *cc) {
    printf("%d %d %d %d %d %d %d %d\n", cc->epLex, cc->eoMask, cc->cpLex,
            cc->coMask, cc->poIdxU, cc->poIdxL, cc->moSupport, cc->moMask) ;
@@ -13,6 +16,7 @@ void showbytes(unsigned char *b, int n) {
       printf(" %x", b[i]) ;
    printf("\n") ;
 }
+char reidbuf[100] ;
 void showenc(unsigned char *s) {
    unsigned char bytes[11] ;
    struct cubecoords cc ;
@@ -27,6 +31,8 @@ void showenc(unsigned char *s) {
       printf("Got an error: %d\n", err) ;
    showcubecoords(&cc2) ;
    unsigned char stickers2[54] ;
+   componentsToHeykube(&cc2, stickers2) ;
+   componentsToReid(&cc2, reidbuf) ;
    err = componentsToStickers(&cc2, stickers2) ;
    if (err < 0)
       printf("Got an error: %d\n", err) ;

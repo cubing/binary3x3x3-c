@@ -30,7 +30,10 @@
 UF UR UB UL DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR U L F R B D
  0  1  2  3  4  5  6  7  8  9 10 11  12  13  14  15  16  17  18  19 20  .... 25
  */
+#include "cubecoords.h"
 #include "stickerstobin.h"
+#include "index.h"
+#include "errors.h"
 static const unsigned char ReidOrder[] = {
     7,19,  5,28,  1,37,  3,10            , // up edges
    46,25, 50,34, 52,43, 48,16,             // down edges
@@ -96,39 +99,6 @@ static const unsigned short cornerExpand[] = { 19, 152, 194, 0, 28, 224,
    0, 332, 101, 297, 0, 355, 285, 236, 0,} ;
 #endif
 /*
- *   Index a permutation.  Return -1 if all values are not seen.
- *   Zero based.
- */
-static const unsigned char popcount64[] = {
-   0,1,1,2,1,2,2,3, 1,2,2,3,2,3,3,4, 1,2,2,3,2,3,3,4, 2,3,3,4,3,4,4,5,
-   1,2,2,3,2,3,3,4, 2,3,3,4,3,4,4,5, 2,3,3,4,3,4,4,5, 3,4,4,5,4,5,5,6 } ;
-static int encodePerm(const unsigned char *a, int n) {
-   int bits = 0 ;
-   int r = 0 ;
-   for (int i=0; i<n; i++) {
-      bits |= 1<<a[i] ;
-      int low = ((1<<a[i])-1) & bits ;
-      r = r * (n-i) + a[i] - popcount64[low>>6] - popcount64[low&63] ;
-   }
-   if (bits + 1 != 1 << n)
-      return -1 ;
-   return r ;
-}
-/*
- *   Unindex a perm.  This can be made faster if the CPU has
- *   64-bit ints but microcontrollers might not have such.
- */
-static void decodePerm(int lex, unsigned char *a, int n) {
-   a[n-1] = 0 ;
-   for (int i=n-2; i>=0; i--) {
-      a[i] = lex % (n - i) ;
-      lex /= n-i ;
-      for (int j=i+1; j<n; j++)
-         if (a[j] >= a[i])
-            a[j]++ ;
-   }
-}
-/*
  *   From an array of cubie values, calculate the relevant
  *   permutations and orientations.  Ensure all needed cubies are seen.
  */
@@ -175,44 +145,6 @@ int stickersToComponents(const unsigned char *stickers, struct cubecoords *cc) {
    cc->moSupport = 0 ;
    cc->eoMask = edgeo ;
    cc->moMask = 0 ;
-   return 0 ;
-}
-unsigned char *tobytes11(const struct cubecoords *cc, unsigned char *p) {
-   p[0] = cc->epLex >> 21 ;
-   p[1] = cc->epLex >> 13 ;
-   p[2] = cc->epLex >> 5 ;
-   p[3] = (cc->epLex << 3) + (cc->eoMask >> 9) ;
-   p[4] = cc->eoMask >> 1 ;
-   p[5] = (cc->eoMask << 7) + (cc->cpLex >> 9) ;
-   p[6] = cc->cpLex >> 1 ;
-   p[7] = (cc->cpLex << 7) + (cc->coMask >> 6) ;
-   p[8] = (cc->coMask << 2) + (cc->poIdxU >> 1) ;
-   p[9] = (cc->poIdxU << 7) + (cc->poIdxL << 5) +
-          (cc->moSupport << 4) + (cc->moMask >> 8) ;
-   p[10] = cc->moMask ;
-   return p ;
-}
-int frombytes11(const unsigned char *p, struct cubecoords *cc) {
-   cc->epLex = (p[0] << 21) + (p[1] << 13) + (p[2] << 5) + (p[3] >> 3) ;
-   if (cc->epLex >= 479001600)
-      return EDGE_PERMUTATION_OUT_OF_RANGE ;
-   cc->eoMask = ((p[3] & 07) << 9) + (p[4] << 1) + (p[5] >> 7) ;
-   if (cc->eoMask >= 4096)
-      return EDGE_ORIENTATION_OUT_OF_RANGE ;
-   cc->cpLex = ((p[5] & 0177) << 9) + (p[6] << 1) + (p[7] >> 7) ;
-   if (cc->cpLex >= 40320)
-      return CORNER_PERMUTATION_OUT_OF_RANGE ;
-   cc->coMask = ((p[7] & 0177) << 6) + (p[8] >> 2) ;
-   if (cc->coMask >= 6561)
-      return CORNER_ORIENTATION_OUT_OF_RANGE ;
-   cc->poIdxU = ((p[8] & 3) << 1) + (p[9] >> 7) ;
-   if (cc->poIdxU != 7)
-      return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
-   cc->poIdxL = (p[9] >> 5) & 3 ;
-   cc->moSupport = (p[9] >> 4) & 1 ;
-   if (cc->moSupport)
-      return CENTER_ORIENTATION_NOT_SUPPORTED ;
-   cc->moMask = ((p[9] & 017) << 8) + p[10] ;
    return 0 ;
 }
 int componentsToStickers(const struct cubecoords *cc, unsigned char *stickers) {
