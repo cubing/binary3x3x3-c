@@ -39,7 +39,7 @@ static const unsigned char ReidOrder[] = {
    16,19, 10,7,  28,25, 34,1,              // middle edges
    44,15,18, 42,24,27, 36,33,0,  38,6,9,   // up corners
    51,20,17, 45,11,8,  47,2,35,  53,29,26, // down corners
-   40, 4, 13, 22, 31, 49, } ;              // centers
+   4, 13, 22, 31, 40, 49 } ;              // centers
 /*
  *   To initialize, we want a table that goes from cubie coloring
  *   back to actual cubies and forward to cubie coloring.  We separate
@@ -104,10 +104,10 @@ static const unsigned char cornerLookup[] = { 255, 13, 255, 25, 10, 22, 21,
 static const unsigned short edgeExpand[] = { 2636, 809, 2773, 1387, 2526,
    1959, 2371, 229, 3086, 944, 3351, 1524, 3232, 2098, 2949, 366, 1043,
    1232, 647, 458, 1817, 1628, 2177, 98 } ;
-static const int cornerExpand[] = { 50130, 62636, 11023, 0, 42523, 34538,
-   47768, 0, 18496, 4132, 2337, 0, 24969, 25190, 39302, 0, 13585, 17523,
-   7380, 0, 53960, 45613, 35659, 0, 61603, 10479, 15298, 0, 22362, 54965,
-   44381, 0 } ;
+static const int cornerExpand[] = { 181202, 62636, 76559, 0, 173595,
+   100074, 113304, 0, 149568, 135204, 2337, 0, 156041, 25190, 39302, 0,
+   210193, 83059, 72916, 0, 185032, 45613, 35659, 0, 192675, 10479, 146370,
+   0, 218970, 120501, 109917, 0 } ;
 #endif
 /*
  *   From an array of cubie values, calculate the relevant
@@ -135,7 +135,7 @@ int heykubeToComponents(const unsigned char *kubeperm, struct cubecoords *cc) {
       return MISSING_EDGE_CUBIE ;
    for (int i=0; i<8; i++) {
       int cubie = cornerLookup[6*(kubeperm[ReidOrder[3*i+24]]/9)+
-                                 kubeperm[ReidOrder[3*i+25]]/9] ;
+                                  kubeperm[ReidOrder[3*i+25]]/9] ;
       if (cubie == 255 || cornerExpand[cubie] !=
           (kubeperm[ReidOrder[3*i+24]]<<12)+(kubeperm[ReidOrder[3*i+25]]<<6)+
            kubeperm[ReidOrder[3*i+26]])
@@ -147,7 +147,7 @@ int heykubeToComponents(const unsigned char *kubeperm, struct cubecoords *cc) {
    if (cornerperm < 0)
       return MISSING_CORNER_CUBIE ;
    for (int i=0; i<6; i++)
-      perm[i] = kubeperm[ReidOrder[i+48]] ;
+      perm[i] = kubeperm[ReidOrder[i+48]]/9 ;
    if (encodePerm(perm, 6) != 0)
       return PUZZLE_ORIENTATION_NOT_SUPPORTED ;
    cc->cpLex = cornerperm ;

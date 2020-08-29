@@ -109,9 +109,9 @@ int ReidToComponents(const char *Reid, struct cubecoords *cc) {
    if (edgeperm < 0)
       return MISSING_EDGE_CUBIE ;
    for (int i=0; i<8; i++) {
-      int cubie = edgeLookup[(Reid[36+4*i]+15*Reid[37+4*i])&63] ;
+      int cubie = cornerLookup[(Reid[36+4*i]+15*Reid[37+4*i])&63] ;
       if (cubie == 255 || cornerExpand[cubie] != ((Reid[36+4*i]&31) << 10) +
-                               ((Reid[37+4*i]&31) << 5) + (Reid[38+4*i+1]&31))
+                               ((Reid[37+4*i]&31) << 5) + (Reid[38+4*i]&31))
          return ILLEGAL_CUBIE_SEEN ;
       perm[i] = (cubie >> 2) ;
       cornero = 3 * cornero + (cubie & 3) ;
