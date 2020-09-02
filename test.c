@@ -88,7 +88,7 @@ case 'v': verbose = 1 ; break ;
          }
       }
       int err = 0 ;
-      if (ntoks > 0 && ismovestring(toks[0])) {
+      if (ntoks == 0 || ismovestring(toks[0])) {
          perm p ;
          iota(p) ;
          err = domoves(p, reidbuf) ;
