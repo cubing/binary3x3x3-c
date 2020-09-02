@@ -7,14 +7,14 @@ struct basemove {
    struct cubecoords cc ;
 } ;
 static struct basemove basemoves[] = {
-   {'U', {119750400, 0, 15120, 0}}, {'D', {5880, 0, 18, 0}},
-   {'F', {323393334, 2188, 21006, 2412}}, {'B', {3312664, 547, 1233, 1708}},
-   {'R', {33070610, 0, 9507, 5132}}, {'L', {247911, 0, 176, 588}},
+   {'U', {43908480, 0, 5880, 0}}, {'D', {15120, 0, 9, 0}},
+   {'F', {363310128, 2188, 16008, 2412}}, {'B', {2949785, 547, 4352, 1708}},
+   {'R', {25813736, 0, 20325, 5132}}, {'L', {328525, 0, 486, 588}}
 } ;
-// b and c must not be the same object
+// a and c must not be the same object
 static void permmul(const perm a, const perm b, perm c) {
    for (int i=0; i<PERM_N; i++)
-      c[i] = b[a[i]] ;
+      c[i] = a[b[i]] ;
 }
 void iota(perm a) {
    for (int i=0; i<PERM_N; i++)
@@ -34,7 +34,10 @@ static void initmoves() {
 }
 void domove(perm a, int mv) {
    initmoves() ;
-   permmul(a, allmoves[mv], a) ;
+   perm t ;
+   permmul(a, allmoves[mv], t) ;
+   for (int i=0; i<PERM_N; i++)
+      a[i] = t[i] ;
 }
 int domoves(perm a, const char *s) {
    for (;;) {
