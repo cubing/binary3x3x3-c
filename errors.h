@@ -13,5 +13,6 @@
 #define PERM_ELEMENT_OUT_OF_RANGE (-1012)
 #define REID_ELEMENT_OUT_OF_RANGE (-1013)
 #define WRONG_REID_LENGTH (-1014)
+#define BAD_MOVE_FORMAT (-1015)
 #define ERRORS_H
 #endif

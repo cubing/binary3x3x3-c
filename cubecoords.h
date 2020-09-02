@@ -3,13 +3,13 @@
  */
 #ifndef CUBECOORDS_H
 struct cubecoords {
+   int epLex ;    /* edge permutation ordinal; 0..479001599 */
+   int eoMask ;   /* edge orientation; 0..4095 */
    int cpLex ;    /* corner permutation ordinal; 0..40319 */
    int coMask ;   /* corner orientation base-3; 0..6560 */
    int poIdxU ;   /* puzzle orientation up index; 0..5 or 7 */
-   int epLex ;    /* edge permutation ordinal; 0..479001599 */
    int poIdxL ;   /* puzzle orientation left index; 0..3 */
    int moSupport ;/* center orientation support; 0..1 */
-   int eoMask ;   /* edge orientation; 0..4095 */
    int moMask ;   /* center orientation; 0..4095 */
 } ;
 /*

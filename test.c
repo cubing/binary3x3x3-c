@@ -16,6 +16,7 @@
 #include "stickerstobin.h"
 #include "heykubetobin.h"
 #include "reidtobin.h"
+#include "moves.h"
 int formatstoshow ;
 int verbose ;
 const int INBUFSZ = 2048 ;
@@ -25,7 +26,7 @@ void error(const char *s) {
    exit(10) ;
 }
 struct cubecoords cc ;
-char reidbuf[1000] ;
+char reidbuf[INBUFSZ] ;
 unsigned char buf1[100] ;
 unsigned char buf2[100] ;
 char *toks[54] ;
@@ -40,6 +41,11 @@ void toints(int n, int lo, int hi, int base) {
          error("! integer value out of range") ;
       itoks[i] = v ;
    }
+}
+int ismovestring(const char *a) {
+   return ((*a == 'U' || *a == 'F' || *a == 'R' ||
+            *a == 'D' || *a == 'B' || *a == 'L') &&
+           (a[1] == 0 || (a[2] == 0 && (a[1] == '2' || a[1] == '\'')))) ;
 }
 int main(int argc, char *argv[]) {
    while (argc > 1 && argv[1][0] == '-') {
@@ -65,8 +71,7 @@ case 'v': verbose = 1 ; break ;
       char *q = inbuffer + strlen(inbuffer) - 1 ;
       while (q >= inbuffer && *q <= ' ') // clear trailing whitespace
          *q-- = 0 ;
-      if (strlen(inbuffer) < 1000) // keep a copy; we're about to trash inbuffer
-         strcpy(reidbuf, inbuffer) ;
+      strcpy(reidbuf, inbuffer) ; // keep a copy; we're about to trash inbuffer
       for (char *p = inbuffer; *p; p++) {
          if (*p <= ' ') {
             if (intok) {
@@ -83,7 +88,13 @@ case 'v': verbose = 1 ; break ;
          }
       }
       int err = 0 ;
-      if (ntoks == 4) { // has to be 4-valued coordinate values
+      if (ntoks > 0 && ismovestring(toks[0])) {
+         perm p ;
+         iota(p) ;
+         err = domoves(p, reidbuf) ;
+         if (err == 0)
+            err = heykubeToComponents(p, &cc) ;
+      } else if (ntoks == 4) { // has to be 4-valued coordinate values
          toints(ntoks, 0, 500000000, 10) ;
          cc.epLex = itoks[0] ;
          cc.eoMask = itoks[1] ;
