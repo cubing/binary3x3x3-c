@@ -1,0 +1,30 @@
+Formats:
+
+I O binary component (hexadecimal bytes)
+I O decimal component
+I O Reid
+I O stickers (as sequence of numbers)
+  O stickers (as drawing)
+I O heykube (as sequence of numbers)
+  O heykube (as drawing)
+  O random
+
+sequence of moves (generate)
+kpuzzle
+
+Can we recognize input?
+
+Binary component:  11 hex values
+Decimal component:  4 decimal values
+Reid:  Starts with one of UFRDBL
+Stickers:  54 values, max is 5
+Heykube:  54 values, max is 53
+
+So we only need to specify output formats.  We can specify as many
+as we want.
+
+-b binary
+-c component
+-R reid
+-s stickers
+-h heykube
